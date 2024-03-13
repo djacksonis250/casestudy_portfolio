@@ -1,0 +1,249 @@
+  -- Percentage OF cases resulting IN death
+SELECT
+  location,
+  date,
+  total_cases,
+  total_deaths,
+  (total_deaths/total_cases)*100 AS death_percentage
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NOT NULL
+ORDER BY
+  1, 2 
+  
+  -- Percentage OF population infected
+SELECT
+  location,
+  date,
+  population,
+  total_cases,
+  (total_cases/population)*100 AS population_percentage
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NOT NULL
+ORDER BY
+  1,2 
+  
+-- Highest infection percentages
+SELECT
+  location,
+  population,
+  MAX(total_cases) AS highest_infection_rate,
+  MAX((total_cases/population))*100 AS population_percentage
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NOT NULL
+GROUP BY
+  location,
+  population
+ORDER BY
+  1,2 
+
+-- Highest death rates
+SELECT
+  location,
+  MAX(total_deaths) AS total_death_count
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NOT NULL
+GROUP BY
+  location
+ORDER BY
+  total_death_count DESC 
+  
+-- Total deaths BY continent
+SELECT
+  location,
+  MAX(total_deaths) AS total_death_count
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NULL
+GROUP BY
+  location
+ORDER BY
+  total_death_count DESC 
+  
+-- Percentage OF cases resulting IN death BY continent
+SELECT
+  location,
+  date,
+  total_cases,
+  total_deaths,
+  (total_deaths/total_cases)*100 AS death_percentage
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NULL
+ORDER BY
+  1,2 
+  
+-- Percentage OF population infected BY continent
+SELECT
+  continent,
+  location,
+  date,
+  population,
+  total_cases,
+  (total_cases/population)*100 AS population_percentage
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NULL
+ORDER BY
+  1, 2 
+  
+-- Highest infection percentages BY continent
+SELECT
+  continent,
+  location,
+  population,
+  MAX(total_cases) AS highest_infection_rate,
+  MAX((total_cases/population))*100 AS population_percentage
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NULL
+GROUP BY
+  continent,
+  location,
+  population
+ORDER BY
+  1,2 
+  
+-- Global Numbers death percentages BY date
+SELECT
+  date,
+  SUM(new_cases) AS total_cases,
+  SUM(new_deaths) AS total_deaths,
+  SUM(new_deaths)/SUM(new_cases)*100 AS death_percentage
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NOT NULL
+GROUP BY
+  date
+ORDER BY
+  1,2 
+  
+-- Global total cases,
+  deaths
+  AND death percentage
+SELECT
+  SUM(new_cases) AS total_cases,
+  SUM(new_deaths) AS total_deaths,
+  SUM(new_deaths)/SUM(new_cases)*100 AS death_percentage
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1`
+WHERE
+  continent IS NOT NULL
+ORDER BY
+  1,2 
+  
+-- VIEW Covid Vacs dataset
+SELECT
+  *
+FROM
+  `casestudies-415716.covid_casestudy.covidvacs_v1` 
+  
+-- Joining coviddeaths_v1
+  AND covidvacs_v1
+SELECT
+  *
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1` dea
+JOIN
+  `casestudies-415716.covid_casestudy.covidvacs_v1` vac
+ON
+  dea.location = vac.location
+  AND dea.date = vac.date 
+  
+-- Total Population vs Vaccinations
+SELECT
+  dea.continent,
+  dea.location,
+  dea.date,
+  dea.population,
+  vac.new_vaccinations
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1` dea
+JOIN
+  `casestudies-415716.covid_casestudy.covidvacs_v1` vac
+ON
+  dea.location = vac.location
+  AND dea.date = vac.date
+WHERE
+  dea.continent IS NOT NULL
+ORDER BY
+  2,3 
+  
+---- Total Population vs Vaccinations
+WITH
+  rolling count
+SELECT
+  dea.continent,
+  dea.location,
+  dea.date,
+  dea.population,
+  vac.new_vaccinations,
+  SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_vac_count
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1` dea
+JOIN
+  `casestudies-415716.covid_casestudy.covidvacs_v1` vac
+ON
+  dea.location = vac.location
+  AND dea.date = vac.date
+WHERE
+  dea.continent IS NOT NULL
+ORDER BY
+  2,3
+
+SELECT
+  dea.continent,
+  dea.location,
+  dea.date,
+  dea.population,
+  vac.new_vaccinations,
+  SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_vac_count 
+  --,(rolling_vac_count/population)*100
+FROM
+  `casestudies-415716.covid_casestudy.coviddeaths_v1` dea
+JOIN
+  `casestudies-415716.covid_casestudy.covidvacs_v1` vac
+ON
+  dea.location = vac.location
+  AND dea.date = vac.date
+WHERE
+  dea.continent IS NOT NULL
+ORDER BY
+  2,3 
+  
+-- USE CTE
+WITH
+  pop_vs_vac AS (
+  SELECT
+    dea.continent,
+    dea.location,
+    dea.date,
+    dea.population,
+    vac.new_vaccinations,
+    SUM(vac.new_vaccinations) OVER (PARTITION BY dea.location ORDER BY dea.location, dea.date) AS rolling_vac_count
+  FROM
+    `casestudies-415716.covid_casestudy.coviddeaths_v1` dea
+  JOIN
+    `casestudies-415716.covid_casestudy.covidvacs_v1` vac
+  ON
+    dea.location = vac.location
+    AND dea.date = vac.date
+  WHERE
+    dea.continent IS NOT NULL )
+SELECT
+  *,
+  (rolling_vac_count/population)*100
+FROM
+  pop_vs_vac
